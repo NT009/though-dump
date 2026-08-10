@@ -5,14 +5,12 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { ArrowLeft, Trash2 } from "lucide-react";
-import { deleteThought } from "../actions/thoughtActions";
 
 export default function VaultClient({ initialThoughts }: { initialThoughts: any[] }) {
   const [thoughts, setThoughts] = useState(initialThoughts);
 
   const handleDelete = async (id: string) => {
     if (confirm("Are you sure you want to delete this thought?")) {
-      await deleteThought(id);
       setThoughts(thoughts.filter(t => t._id !== id));
     }
   };

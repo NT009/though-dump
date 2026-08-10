@@ -4,7 +4,6 @@ import { useState } from "react";
 import RichTextEditor from "@/components/RichTextEditor";
 import TagSelector from "@/components/TagSelector";
 import { Button } from "@/components/ui/button";
-import { createThought } from "./actions/thoughtActions";
 import { Loader2, Vault } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -20,7 +19,7 @@ export default function ThoughtDumpClient() {
     
     setIsSubmitting(true);
     try {
-      await createThought(content, tags);
+      await new Promise(resolve => setTimeout(resolve, 500)); // Mock network request
       setContent("");
       setTags([]);
       router.refresh();
@@ -42,9 +41,6 @@ export default function ThoughtDumpClient() {
               Vault
             </Button>
           </Link>
-          <a href="/api/auth/signout" className="text-sm font-medium text-muted-foreground hover:text-destructive transition-colors">
-            Logout
-          </a>
         </div>
       </header>
 
