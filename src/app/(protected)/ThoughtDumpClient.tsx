@@ -8,11 +8,14 @@ import { Loader2, Vault } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+import { useAuth } from "@/components/AuthProvider";
+
 export default function ThoughtDumpClient() {
   const [content, setContent] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
+  const { logout } = useAuth();
 
   const handleSubmit = async () => {
     if (!content.trim() || content === "<p></p>") return;
@@ -41,6 +44,9 @@ export default function ThoughtDumpClient() {
               Vault
             </Button>
           </Link>
+          <Button variant="ghost" size="sm" className="rounded-full font-medium shadow-sm hover:bg-destructive/10 hover:text-destructive" onClick={logout}>
+            Log out
+          </Button>
         </div>
       </header>
 
