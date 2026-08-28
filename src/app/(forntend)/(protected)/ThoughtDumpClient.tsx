@@ -7,15 +7,21 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Vault } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
-import { useAuth } from "@/components/AuthProvider";
+import { authClient } from "@/lib/auth-client";
 
 export default function ThoughtDumpClient() {
   const [content, setContent] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
-  const { logout } = useAuth();
+
+  const handleLogout = async () => {
+    await authClient.signOut();
+    toast.success("Logged out successfully");
+    router.push("/login");
+  };
 
   const handleSubmit = async () => {
     if (!content.trim() || content === "<p></p>") return;
@@ -25,9 +31,11 @@ export default function ThoughtDumpClient() {
       await new Promise(resolve => setTimeout(resolve, 500)); // Mock network request
       setContent("");
       setTags([]);
+      toast.success("Thought saved securely");
       router.refresh();
     } catch (error) {
       console.error("Failed to save thought", error);
+      toast.error("Failed to save thought");
     } finally {
       setIsSubmitting(false);
     }
@@ -36,15 +44,15 @@ export default function ThoughtDumpClient() {
   return (
     <main className="min-h-screen bg-background flex flex-col p-4 md:p-8 max-w-4xl mx-auto">
       <header className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-extrabold tracking-tighter text-primary">Dump.</h1>
+        <h1 className="text-3xl font-extrabold tracking-tight text-primary">Dump.</h1>
         <div className="flex items-center gap-4">
           <Link href="/vault">
-            <Button variant="secondary" size="sm" className="gap-2 rounded-full font-medium shadow-sm">
+            <Button variant="secondary" size="sm" className="gap-2 font-medium shadow-sm">
               <Vault className="w-4 h-4" />
               Vault
             </Button>
           </Link>
-          <Button variant="ghost" size="sm" className="rounded-full font-medium shadow-sm hover:bg-destructive/10 hover:text-destructive" onClick={logout}>
+          <Button variant="ghost" size="sm" className="font-medium hover:bg-destructive/10 hover:text-destructive" onClick={handleLogout}>
             Log out
           </Button>
         </div>
@@ -60,11 +68,12 @@ export default function ThoughtDumpClient() {
           
           <Button 
             size="lg" 
-            className="w-full sm:w-auto rounded-full px-10 h-12 shrink-0 shadow-xl hover:shadow-2xl transition-all font-bold text-lg"
+            className="w-full sm:w-auto px-10 h-12 shrink-0 shadow-md font-semibold text-base"
             onClick={handleSubmit}
             disabled={isSubmitting || !content.trim() || content === "<p></p>"}
           >
-            {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Save Thought"}
+            {isSubmitting && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+            {isSubmitting ? "Saving..." : "Save Thought"}
           </Button>
         </div>
       </div>
