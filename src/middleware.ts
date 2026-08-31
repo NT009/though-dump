@@ -32,5 +32,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/api/dump/:path*'],
+  matcher: ['/api/dump/:path*', '/api/tags/:path*'],
 };

@@ -38,6 +38,7 @@ export const POST = withAuth(async (req, userId) => {
       // Build a single query to check if the tag exists by either 'name' OR '_id'
       const query: any = { 
         user_id: userId, 
+        deleted_at: null,
         $or: [{ name: providedTag }] 
       };
 
@@ -55,7 +56,10 @@ export const POST = withAuth(async (req, userId) => {
         // Doesn't exist by ID or Name, so create it!
         const tagResult = await db.collection("tags").insertOne({
           name: providedTag,
-          user_id: userId
+          user_id: userId,
+          created_at: new Date(),
+          updated_at: new Date(),
+          deleted_at: null,
         });
         finalTagId = tagResult.insertedId;
       }

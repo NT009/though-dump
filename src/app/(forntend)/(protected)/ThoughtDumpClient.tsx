@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import RichTextEditor from "@/components/RichTextEditor";
 import TagSelector from "@/components/TagSelector";
 import { Button } from "@/components/ui/button";
@@ -10,12 +10,31 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { authClient } from "@/lib/auth-client";
+import { fetchApi, handleApiError } from "@/lib/api-client";
 
 export default function ThoughtDumpClient() {
   const [content, setContent] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // You can use availableTags later to build autocomplete in TagSelector if you want!
+  const [availableTags, setAvailableTags] = useState<any[]>([]);
   const router = useRouter();
+
+  // Fetch all existing tags on mount
+  useEffect(() => {
+    async function loadTags() {
+      try {
+        const response = await fetchApi("/api/tags");
+        if (response?.data) {
+          setAvailableTags(response.data);
+        }
+      } catch (error) {
+        console.error("Failed to load tags:", error);
+      }
+    }
+    loadTags();
+  }, []);
 
   const handleLogout = async () => {
     await authClient.signOut();
@@ -28,14 +47,24 @@ export default function ThoughtDumpClient() {
     
     setIsSubmitting(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 500)); // Mock network request
+      // The backend accepts a single tag_name currently (based on Zod schema)
+      // So we just take the first tag added
+      const payload = {
+        thought: content,
+        tag_name: tags.length > 0 ? tags[0] : null,
+      };
+
+      await fetchApi("/api/dump", {
+        method: "POST",
+        data: payload,
+      });
+
       setContent("");
       setTags([]);
       toast.success("Thought saved securely");
       router.refresh();
-    } catch (error) {
-      console.error("Failed to save thought", error);
-      toast.error("Failed to save thought");
+    } catch (error: any) {
+      handleApiError(error);
     } finally {
       setIsSubmitting(false);
     }
