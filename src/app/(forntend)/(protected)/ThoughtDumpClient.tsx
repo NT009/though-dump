@@ -92,7 +92,7 @@ export default function ThoughtDumpClient() {
         
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mt-auto sm:mt-0 pt-4 pb-20 sm:pb-0">
           <div className="flex-1">
-            <TagSelector tags={tags} onChange={setTags} />
+            <TagSelector tags={tags} availableTags={availableTags} onChange={setTags} />
           </div>
           
           <Button 
