@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { X, Check } from "lucide-react";
-import { Input } from "./ui/input";
 import { cn } from "@/lib/utils";
+import { Check, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Input } from "./ui/input";
 
 interface TagSelectorProps {
   tags: string[];
@@ -73,7 +73,7 @@ export default function TagSelector({ tags, availableTags = [], onChange }: TagS
         ))}
       </div>
       
-      <div className="relative w-full sm:w-64">
+      <div className="relative w-full">
         <Input
           type="text"
           placeholder="+ Search or add tag (Enter)"

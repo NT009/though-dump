@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
-import clientPromise from "@/lib/mongodb";
-import { ObjectId } from "mongodb";
-import { Dump } from "@/lib/types";
 import { withAuth } from "@/lib/api-utils";
+import clientPromise from "@/lib/mongodb";
+import { Dump } from "@/lib/types";
+import { ObjectId } from "mongodb";
+import { NextResponse } from "next/server";
 import { z } from "zod";
 
 const dumpSchema = z.object({
@@ -97,34 +97,87 @@ export const GET = withAuth(async (req, userId) => {
     const url = new URL(req.url);
     const page = Math.max(1, parseInt(url.searchParams.get("page") || "1", 10));
     const limit = Math.max(1, parseInt(url.searchParams.get("limit") || "10", 10));
+    
     const timezone = url.searchParams.get("timezone") || "UTC";
 
-    const skip = (page - 1) * limit;
+    // Filters
+    const tagId = url.searchParams.get("tag_id");
+    const search = url.searchParams.get("search");
+    const date = url.searchParams.get("date"); // YYYY-MM-DD
+    const startDate = url.searchParams.get("startDate"); // YYYY-MM-DD
+    const endDate = url.searchParams.get("endDate"); // YYYY-MM-DD
 
+    const skip = (page - 1) * limit;
+    
     const client = await clientPromise;
     const db = client.db();
 
+    // Build the match query
+    const matchQuery: any = {
+      user_id: userId,
+      deleted_at: null,
+    };
+
+    // Filter by Tag
+    if (tagId && ObjectId.isValid(tagId)) {
+      matchQuery.tag_id = new ObjectId(tagId);
+    }
+
+    // Filter by Search text (case-insensitive regex on 'thought')
+    if (search) {
+      matchQuery.thought = { $regex: search, $options: "i" };
+    }
+
+    // Filter by Date(s) with Timezone support
+    if (date || startDate || endDate) {
+      if (!matchQuery.$expr) matchQuery.$expr = { $and: [] };
+
+      if (date) {
+        matchQuery.$expr.$and.push({
+          $eq: [
+            { $dateToString: { format: "%Y-%m-%d", date: "$created_at", timezone } },
+            date
+          ]
+        });
+      } else {
+        if (startDate) {
+          matchQuery.$expr.$and.push({
+            $gte: [
+              { $dateToString: { format: "%Y-%m-%d", date: "$created_at", timezone } },
+              startDate
+            ]
+          });
+        }
+        if (endDate) {
+          matchQuery.$expr.$and.push({
+            $lte: [
+              { $dateToString: { format: "%Y-%m-%d", date: "$created_at", timezone } },
+              endDate
+            ]
+          });
+        }
+      }
+    }
+
     const pipeline = [
+      { $match: matchQuery },
+      // Optional: Lookup tag details if you want to include tag name in the response
       {
-        $match: {
-          user_id: userId,
-          deleted_at: null,
-        },
+        $lookup: {
+          from: "tags",
+          localField: "tag_id",
+          foreignField: "_id",
+          as: "tag",
+        }
       },
       {
-        $group: {
-          _id: {
-            $dateToString: { 
-              format: "%Y-%m-%d", 
-              date: "$created_at",
-              timezone: timezone 
-            },
-          },
-          count: { $sum: 1 },
-        },
+        $unwind: {
+          path: "$tag",
+          preserveNullAndEmptyArrays: true // Keep dumps even if they don't have a tag
+        }
       },
       {
-        $sort: { _id: -1 as const },
+        $sort: { created_at: -1 as const },
       },
       {
         $facet: {
@@ -132,13 +185,6 @@ export const GET = withAuth(async (req, userId) => {
           data: [
             { $skip: skip },
             { $limit: limit },
-            {
-              $project: {
-                _id: 0,
-                date: "$_id",
-                count: 1,
-              },
-            }
           ]
         }
       }
@@ -147,10 +193,10 @@ export const GET = withAuth(async (req, userId) => {
     const result = await db.collection("dumps").aggregate(pipeline).toArray();
     
     const total = result[0]?.metadata[0]?.total || 0;
-    const summary = result[0]?.data || [];
+    const dumps = result[0]?.data || [];
 
     return NextResponse.json({ 
-      summary,
+      dumps,
       pagination: {
         total,
         page,
@@ -158,8 +204,10 @@ export const GET = withAuth(async (req, userId) => {
         totalPages: Math.ceil(total / limit)
       }
     }, { status: 200 });
+
   } catch (error: any) {
-    console.error("Error fetching dump summary:", error);
+    console.error("Error listing dumps:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 });
+

@@ -1,6 +1,7 @@
-import { redirect } from "next/navigation";
-import { headers } from "next/headers";
+import AppShell from "@/components/AppShell";
 import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 
 export default async function ProtectedLayout({
   children,
@@ -16,8 +17,8 @@ export default async function ProtectedLayout({
   }
 
   return (
-    <>
+    <AppShell>
       {children}
-    </>
+    </AppShell>
   );
 }

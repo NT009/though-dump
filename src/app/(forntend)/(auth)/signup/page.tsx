@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { authClient } from "@/lib/auth-client";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import Link from "next/link";
+import { Input } from "@/components/ui/input";
+import { authClient } from "@/lib/auth-client";
 import { Loader2 } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { toast } from "sonner";
 
 export default function SignupPage() {

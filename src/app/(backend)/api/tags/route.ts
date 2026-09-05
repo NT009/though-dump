@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
-import clientPromise from "@/lib/mongodb";
 import { withAuth } from "@/lib/api-utils";
+import clientPromise from "@/lib/mongodb";
+import { NextResponse } from "next/server";
 
 export const GET = withAuth(async (req, userId) => {
   try {

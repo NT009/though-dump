@@ -1,88 +1,111 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
-import { ArrowLeft, Trash2 } from "lucide-react";
+import { fetchApi, handleApiError } from "@/lib/api-client";
+import { Calendar, FileText } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { authClient } from "@/lib/auth-client";
-import { toast } from "sonner";
+import { useEffect, useState } from "react";
 
-export default function VaultClient({ initialThoughts }: { initialThoughts: any[] }) {
-  const [thoughts, setThoughts] = useState(initialThoughts);
+export default function VaultClient() {
+  const [summary, setSummary] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  const handleLogout = async () => {
-    await authClient.signOut();
-    toast.success("Logged out successfully");
-    router.push("/login");
-  };
-
-  const handleDelete = async (id: string) => {
-    // using browser confirm is standard and okay for simple apps, otherwise we'd use a shadcn dialog
-    if (confirm("Are you sure you want to delete this thought?")) {
-      setThoughts(thoughts.filter(t => t._id !== id));
-      toast.success("Thought deleted");
+  useEffect(() => {
+    async function fetchSummary() {
+      try {
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const data = await fetchApi(`/api/dump/summary?timezone=${tz}`);
+        setSummary(data.summary || []);
+      } catch (error) {
+        handleApiError(error, "Failed to load summary");
+      } finally {
+        setLoading(false);
+      }
     }
-  };
+    
+    fetchSummary();
+  }, []);
 
   return (
-    <main className="min-h-screen bg-background flex flex-col p-4 md:p-8 max-w-4xl mx-auto">
-      <header className="flex items-center justify-between mb-8 pb-4 border-b">
-        <div className="flex items-center gap-4">
-          <Link href="/">
-            <Button variant="ghost" size="icon" className="hover:bg-secondary">
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-          </Link>
-          <h1 className="text-3xl font-extrabold tracking-tight">Your Vault</h1>
+    <div className="w-full mt-2 md:mt-4">
+      <div className="flex flex-col md:flex-row md:items-end justify-between mb-6 gap-4">
+        <div>
+          <h1 className="text-xl md:text-2xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100 mb-1">
+            Your Vault
+          </h1>
+          <p className="text-slate-500 dark:text-slate-400 text-sm md:text-base">
+            Your daily dump activity summary.
+          </p>
         </div>
-        <Button variant="ghost" size="sm" className="font-medium hover:bg-destructive/10 hover:text-destructive" onClick={handleLogout}>
-          Log out
-        </Button>
-      </header>
+      </div>
 
-      {thoughts.length === 0 ? (
-        <div className="text-center py-24 text-muted-foreground bg-secondary/30 rounded-xl border border-dashed">
-          <p className="text-xl font-medium">Your vault is empty.</p>
-          <Link href="/" className="text-primary hover:underline font-semibold mt-4 inline-block">Start dumping thoughts</Link>
+      {loading ? (
+        <div className="flex justify-center py-20 text-muted-foreground animate-pulse">
+          Loading summary...
+        </div>
+      ) : summary.length === 0 ? (
+        <div className="flex flex-col items-center justify-center text-center py-32 text-muted-foreground bg-slate-50/50 dark:bg-neutral-900/20 rounded-2xl border-2 border-dashed border-slate-200 dark:border-neutral-800">
+          <div className="w-16 h-16 mb-4 rounded-full bg-slate-100 dark:bg-neutral-800 flex items-center justify-center">
+            <FileText className="w-8 h-8 text-slate-400" />
+          </div>
+          <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-2">Your vault is empty</h3>
+          <p className="max-w-sm mb-6">You haven't dumped any thoughts yet. Head over to the home page to start writing.</p>
+          <Link href="/">
+            <Button className="rounded-full px-8 shadow-sm">Start dumping thoughts</Button>
+          </Link>
         </div>
       ) : (
-        <div className="grid gap-6">
-          {thoughts.map((thought) => (
-            <Card key={thought._id} className="overflow-hidden shadow-sm hover:shadow-md transition-all duration-300">
-              <CardHeader className="bg-secondary/20 py-3 px-6 flex flex-row items-center justify-between">
-                <time className="text-sm text-muted-foreground font-medium">
-                  {new Date(thought.createdAt).toLocaleString()}
-                </time>
-                <div className="flex gap-2">
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => handleDelete(thought._id)}>
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div 
-                  className="prose dark:prose-invert max-w-none tiptap-content text-base leading-relaxed"
-                  dangerouslySetInnerHTML={{ __html: thought.contentHtml }} 
-                />
-              </CardContent>
-              {thought.tags && thought.tags.length > 0 && (
-                <CardFooter className="px-6 py-4 bg-secondary/10 border-t">
-                  <div className="flex flex-wrap gap-2">
-                    {thought.tags.map((tag: string) => (
-                      <span key={tag} className="text-xs font-semibold text-primary bg-primary/10 px-2.5 py-1 rounded-md">
-                        #{tag}
-                      </span>
-                    ))}
-                  </div>
-                </CardFooter>
-              )}
-            </Card>
-          ))}
+        <div className="rounded-xl border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 overflow-hidden shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <thead className="bg-slate-50/80 dark:bg-neutral-900/50 border-b border-slate-200 dark:border-neutral-800 text-slate-500 dark:text-slate-400 font-medium">
+                <tr>
+                  <th className="px-6 py-4 whitespace-nowrap">Date</th>
+                  <th className="px-6 py-4 text-right whitespace-nowrap">Thoughts Dumped</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-neutral-800/60">
+                {summary.map((item, index) => {
+                  const dateObj = new Date(item.date);
+                  const formattedDate = dateObj.toLocaleDateString(undefined, { 
+                    weekday: 'short',
+                    month: 'short', 
+                    day: 'numeric',
+                    year: 'numeric',
+                    timeZone: 'UTC'
+                  });
+
+                  return (
+                    <tr 
+                      key={index} 
+                      onClick={() => router.push(`/vault/${item.date}`)}
+                      className="hover:bg-slate-50/50 dark:hover:bg-neutral-900/30 transition-colors group cursor-pointer"
+                    >
+                      <td className="px-6 py-4 whitespace-nowrap font-medium text-slate-900 dark:text-slate-100">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-md bg-slate-100 dark:bg-neutral-800 text-slate-500 dark:text-slate-400 group-hover:text-primary transition-colors">
+                            <Calendar className="w-4 h-4" />
+                          </div>
+                          {formattedDate}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <div className="inline-flex items-center gap-2">
+                          <span className="font-bold text-lg text-slate-900 dark:text-slate-100">
+                            {item.count}
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
-    </main>
+    </div>
   );
 }

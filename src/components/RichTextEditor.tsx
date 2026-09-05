@@ -1,9 +1,10 @@
 "use client";
 
-import { useEditor, EditorContent } from "@tiptap/react";
+import { useEffect } from "react";
+import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import { Heading1, Heading2, List } from "lucide-react";
 import { Button } from "./ui/button";
-import { List, Heading1, Heading2 } from "lucide-react";
 
 interface RichTextEditorProps {
   content: string;
@@ -23,6 +24,12 @@ export default function RichTextEditor({ content, onChange }: RichTextEditorProp
       onChange(editor.getHTML());
     },
   });
+
+  useEffect(() => {
+    if (editor && content !== editor.getHTML()) {
+      editor.commands.setContent(content);
+    }
+  }, [content, editor]);
 
   if (!editor) {
     return null;
