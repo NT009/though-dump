@@ -26,15 +26,9 @@ export const GET = withAuth(async (req: NextRequest, userId: string, { params }:
       {
         $lookup: {
           from: "tags",
-          localField: "tag_id",
+          localField: "tag_ids",
           foreignField: "_id",
-          as: "tag",
-        }
-      },
-      {
-        $unwind: {
-          path: "$tag",
-          preserveNullAndEmptyArrays: true
+          as: "tags",
         }
       }
     ];

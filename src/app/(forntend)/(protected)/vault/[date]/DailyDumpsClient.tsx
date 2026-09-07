@@ -74,7 +74,7 @@ export default function DailyDumpsClient({ date }: { date: string }) {
                 <tr>
                   <th className="px-6 py-4 whitespace-nowrap w-32">Time</th>
                   <th className="px-6 py-4 whitespace-nowrap min-w-[300px]">Thought Preview</th>
-                  <th className="px-6 py-4 text-right whitespace-nowrap w-48">Tags</th>
+                  <th className="px-6 py-4 text-right whitespace-nowrap w-64">Tags</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-neutral-800/60">
@@ -104,11 +104,20 @@ export default function DailyDumpsClient({ date }: { date: string }) {
                           {strippedThought}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right">
-                        {dump.tag && dump.tag.name ? (
-                          <span className="inline-flex text-xs font-semibold text-primary/80 bg-primary/10 px-2.5 py-1.5 rounded-md border border-primary/20">
-                            #{dump.tag.name}
-                          </span>
+                      <td className="px-6 py-4 text-right">
+                        {dump.tags && dump.tags.length > 0 ? (
+                          <div className="flex flex-wrap justify-end gap-1.5">
+                            {dump.tags.slice(0, 2).map((tag: any) => (
+                              <span key={tag._id} className="inline-flex text-xs font-semibold text-primary/80 bg-primary/10 px-2.5 py-1 rounded-md border border-primary/20">
+                                #{tag.name}
+                              </span>
+                            ))}
+                            {dump.tags.length > 2 && (
+                              <span className="inline-flex text-xs font-semibold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-neutral-800 px-2 py-1 rounded-md border border-slate-200 dark:border-neutral-700">
+                                +{dump.tags.length - 2}
+                              </span>
+                            )}
+                          </div>
                         ) : (
                           <span className="text-slate-400 text-xs italic">Uncategorized</span>
                         )}

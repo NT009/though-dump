@@ -97,13 +97,17 @@ export default function DumpDetailClient({ id }: { id: string }) {
           />
         </CardContent>
 
-        {dump.tag && dump.tag.name && (
+        {dump.tags && dump.tags.length > 0 && (
           <CardFooter className="px-6 md:px-8 py-5 bg-slate-50/50 dark:bg-neutral-900/30 border-t border-slate-100 dark:border-neutral-800">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <span className="text-sm font-medium text-slate-500">Categorized in:</span>
-              <span className="text-sm font-semibold text-primary/90 bg-primary/10 px-3 py-1.5 rounded-md border border-primary/20">
-                #{dump.tag.name}
-              </span>
+              <div className="flex flex-wrap gap-2">
+                {dump.tags.map((tag: any) => (
+                  <span key={tag._id} className="text-sm font-semibold text-primary/90 bg-primary/10 px-3 py-1.5 rounded-md border border-primary/20">
+                    #{tag.name}
+                  </span>
+                ))}
+              </div>
             </div>
           </CardFooter>
         )}

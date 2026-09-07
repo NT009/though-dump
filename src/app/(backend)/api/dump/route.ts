@@ -7,13 +7,12 @@ import { z } from "zod";
 
 const dumpSchema = z.object({
   thought: z.string().min(1, "Thought is required and cannot be empty"),
-  tag_id: z.string().optional().nullable(),
-  tag_name: z.string().optional().nullable(),
+  existing_tag_ids: z.array(z.string()).optional(),
+  new_tag_names: z.array(z.string()).optional(),
 });
 
 export const POST = withAuth(async (req, userId) => {
   try {
-    // 2. Parse and validate request body with Zod
     const body = await req.json();
     const parseResult = dumpSchema.safeParse(body);
 
@@ -24,58 +23,78 @@ export const POST = withAuth(async (req, userId) => {
       );
     }
 
-    const { thought, tag_id, tag_name } = parseResult.data;
+    const { thought, existing_tag_ids, new_tag_names } = parseResult.data;
 
-    // 3. Connect to database
     const client = await clientPromise;
     const db = client.db(); 
 
-    // 4. Handle Tag Logic
-    let finalTagId: ObjectId | null = null;
-    const providedTag = tag_id || tag_name;
+    let tagIds: ObjectId[] = [];
 
-    if (providedTag) {
-      // Build a single query to check if the tag exists by either 'name' OR '_id'
-      const query: any = { 
-        user_id: userId, 
-        deleted_at: null,
-        $or: [{ name: providedTag }] 
-      };
-
-      // Only add the `_id` check if the string can be safely parsed into an ObjectId
-      if (ObjectId.isValid(providedTag) && String(new ObjectId(providedTag)) === String(providedTag)) {
-        query.$or.push({ _id: new ObjectId(providedTag) });
+    if (existing_tag_ids && existing_tag_ids.length > 0) {
+      const validObjectIds = existing_tag_ids.filter(id => ObjectId.isValid(id)).map(id => new ObjectId(id));
+      
+      if (validObjectIds.length !== existing_tag_ids.length) {
+        return NextResponse.json({ error: "One or more tag IDs are in an invalid format" }, { status: 400 });
       }
 
-      // 1 database call to find it
-      const existingTag = await db.collection("tags").findOne(query);
+      // Verify that ALL provided tags exist and belong strictly to this user
+      const verifiedTags = await db.collection("tags").find({
+        _id: { $in: validObjectIds },
+        user_id: userId,
+        deleted_at: null
+      }).toArray();
 
-      if (existingTag) {
-        finalTagId = existingTag._id;
-      } else {
-        // Doesn't exist by ID or Name, so create it!
-        const tagResult = await db.collection("tags").insertOne({
-          name: providedTag,
+      if (verifiedTags.length !== validObjectIds.length) {
+        return NextResponse.json({ 
+          error: "One or more selected tags are invalid or could not be found." 
+        }, { status: 400 });
+      }
+
+      for (const tag of verifiedTags) {
+        tagIds.push(tag._id);
+      }
+    }
+
+    if (new_tag_names && new_tag_names.length > 0) {
+      const existingTagsByName = await db.collection("tags").find({ 
+        user_id: userId,
+        deleted_at: null,
+        name: { $in: new_tag_names }
+      }).toArray();
+
+      const existingNames = existingTagsByName.map(t => t.name);
+      
+      for (const existingTag of existingTagsByName) {
+        tagIds.push(existingTag._id);
+      }
+
+      const tagsToCreate = new_tag_names.filter(name => !existingNames.includes(name));
+
+      if (tagsToCreate.length > 0) {
+        const newDocs = tagsToCreate.map(name => ({
+          name,
           user_id: userId,
           created_at: new Date(),
           updated_at: new Date(),
           deleted_at: null,
-        });
-        finalTagId = tagResult.insertedId;
+        }));
+
+        const insertResult = await db.collection("tags").insertMany(newDocs);
+        for (const id of Object.values(insertResult.insertedIds)) {
+          tagIds.push(id as ObjectId);
+        }
       }
     }
 
-    // 5. Create dump object
-    const newDump: Omit<Dump, "_id"> = {
+    const newDump = {
       thought,
-      tag_id: finalTagId,
+      tag_ids: tagIds,
       user_id: userId,
       created_at: new Date(),
       updated_at: new Date(),
       deleted_at: null,
     };
 
-    // 6. Insert into dumps collection
     const result = await db.collection("dumps").insertOne(newDump);
 
     return NextResponse.json({
@@ -100,7 +119,6 @@ export const GET = withAuth(async (req, userId) => {
     
     const timezone = url.searchParams.get("timezone") || "UTC";
 
-    // Filters
     const tagId = url.searchParams.get("tag_id");
     const search = url.searchParams.get("search");
     const date = url.searchParams.get("date"); // YYYY-MM-DD
@@ -112,23 +130,19 @@ export const GET = withAuth(async (req, userId) => {
     const client = await clientPromise;
     const db = client.db();
 
-    // Build the match query
     const matchQuery: any = {
       user_id: userId,
       deleted_at: null,
     };
 
-    // Filter by Tag
     if (tagId && ObjectId.isValid(tagId)) {
-      matchQuery.tag_id = new ObjectId(tagId);
+      matchQuery.tag_ids = new ObjectId(tagId);
     }
 
-    // Filter by Search text (case-insensitive regex on 'thought')
     if (search) {
       matchQuery.thought = { $regex: search, $options: "i" };
     }
 
-    // Filter by Date(s) with Timezone support
     if (date || startDate || endDate) {
       if (!matchQuery.$expr) matchQuery.$expr = { $and: [] };
 
@@ -161,19 +175,12 @@ export const GET = withAuth(async (req, userId) => {
 
     const pipeline = [
       { $match: matchQuery },
-      // Optional: Lookup tag details if you want to include tag name in the response
       {
         $lookup: {
           from: "tags",
-          localField: "tag_id",
+          localField: "tag_ids",
           foreignField: "_id",
-          as: "tag",
-        }
-      },
-      {
-        $unwind: {
-          path: "$tag",
-          preserveNullAndEmptyArrays: true // Keep dumps even if they don't have a tag
+          as: "tags",
         }
       },
       {

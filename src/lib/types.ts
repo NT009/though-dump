@@ -6,7 +6,7 @@ export interface Dump {
   created_at: Date;
   updated_at: Date;
   deleted_at: Date | null;
-  tag_id: ObjectId | null;
+  tag_ids: ObjectId[];
   user_id: string;
 }
 

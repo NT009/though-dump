@@ -37,9 +37,22 @@ export default function ThoughtDumpClient() {
     
     setIsSubmitting(true);
     try {
+      const existingTagIds: string[] = [];
+      const newTagNames: string[] = [];
+
+      tags.forEach(tagName => {
+        const foundTag = availableTags.find(t => t.name.toLowerCase() === tagName.toLowerCase());
+        if (foundTag) {
+          existingTagIds.push(foundTag._id);
+        } else {
+          newTagNames.push(tagName);
+        }
+      });
+
       const payload = {
         thought: content,
-        tag_name: tags.length > 0 ? tags[0] : null,
+        existing_tag_ids: existingTagIds,
+        new_tag_names: newTagNames,
       };
 
       await fetchApi("/api/dump", {
