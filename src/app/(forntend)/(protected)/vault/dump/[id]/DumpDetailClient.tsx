@@ -92,7 +92,7 @@ export default function DumpDetailClient({ id }: { id: string }) {
         
         <CardContent className="p-6 md:p-8">
           <div 
-            className="prose prose-slate dark:prose-invert max-w-none text-lg leading-relaxed tiptap-content"
+            className="prose prose-slate dark:prose-invert max-w-none text-base md:text-xl leading-relaxed tiptap-content"
             dangerouslySetInnerHTML={{ __html: dump.thought }} 
           />
         </CardContent>

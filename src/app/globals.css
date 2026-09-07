@@ -131,10 +131,10 @@
 
 @layer utilities {
   .tiptap-editor h1, .tiptap-content h1 {
-    @apply text-3xl font-extrabold mt-6 mb-4 tracking-tight;
+    @apply text-2xl md:text-3xl font-extrabold mt-6 mb-4 tracking-tight;
   }
   .tiptap-editor h2, .tiptap-content h2 {
-    @apply text-2xl font-bold mt-5 mb-3 tracking-tight;
+    @apply text-xl md:text-2xl font-bold mt-5 mb-3 tracking-tight;
   }
   .tiptap-editor ul, .tiptap-content ul {
     @apply list-disc list-outside ml-6 my-4 space-y-2;

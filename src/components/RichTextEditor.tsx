@@ -17,7 +17,7 @@ export default function RichTextEditor({ content, onChange }: RichTextEditorProp
     content,
     editorProps: {
       attributes: {
-        class: "focus:outline-none min-h-[300px] text-xl leading-relaxed tiptap-editor",
+        class: "focus:outline-none min-h-[300px] text-base md:text-xl leading-relaxed tiptap-editor",
       },
     },
     onUpdate: ({ editor }) => {
